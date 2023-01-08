@@ -25,7 +25,7 @@ void copyFile(char *fromAdress, char *toAdress)
     return;
 }
 
-void finsert(char *address, int line, int pos, char *text)
+void insert(char *address, int line, int pos, char *text)
 {
     FILE *r = fopen(address, "r");
     FILE *w = fopen("tmp.txt", "w");
@@ -62,9 +62,27 @@ void finsert(char *address, int line, int pos, char *text)
     return;
 }
 
+void cat(char *address)
+{
+    FILE *f = fopen(address, "r");
+    while(1)
+    {
+        char c = fgetc(f);
+        if (c == EOF)
+            break;
+        printf("%c", c);
+    }
+    printf("\n");
+    fclose(f);
+    return;
+}
+
+
 int main()
 {
-    //createNewFile("test.txt");
-    finsert("test.txt", 2, 5, "lol");
+    createNewFile("test.txt");
+    insert("test.txt", 1, 0, "Hello\nHow are you?");
+    cat("test.txt");
+    cat("test.txt");
     return 17;
 }
