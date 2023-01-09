@@ -140,12 +140,52 @@ void removestr(char *address, struct pos p, int size, bool forward)
     return;
 }
 
+void copystr(char *address, struct pos p, int size, bool forward)
+{
+    int position = getPos(address, p);
+    FILE *read = fopen(address, "r");
+    FILE *clipboard = fopen("clipboard.txt", "w");
+    int startingPos, endingPos;
+
+    if (!forward)
+    {
+        startingPos = position - size;
+        endingPos = position - 1;
+    }
+    else
+    {
+        startingPos = position + 1;
+        endingPos = position + size;
+    }
+
+    fseek(read, startingPos, SEEK_SET);
+    int k = startingPos;
+    while (1)
+    {
+        char c = fgetc(read);
+        if (c == EOF)
+            break;
+        if (k >= startingPos && k <= endingPos)
+            fputc(c, clipboard);
+        k++;
+    }
+    fclose(read);
+    fclose(clipboard);
+    return;
+}
+
+void cutstr(char *address, struct pos p, int size, bool forward)
+{
+    copystr(address, p, size, forward);
+    removestr(address, p, size, forward);
+}
+
 int main()
 {
     createNewFile("test.txt");
     struct pos start = {1, 0};
     insert("test.txt", start, "Salam\nKhobi?");
     struct pos ran = {2, 1};
-    removestr("test.txt", ran, 3, 0);
+    cutstr("test.txt", ran, 3, 1);
     return 17;
 }
