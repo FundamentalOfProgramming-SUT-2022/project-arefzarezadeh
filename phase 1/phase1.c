@@ -180,12 +180,33 @@ void cutstr(char *address, struct pos p, int size, bool forward)
     removestr(address, p, size, forward);
 }
 
+void pastestr(char *address, struct pos p)
+{
+    FILE *r = fopen("clipboard.txt", "r");
+    fseek(r, 0, SEEK_END);
+    int size = ftell(r);
+    fseek(r, 0, SEEK_SET);
+
+    char *text = calloc((size - 1) , sizeof(char));
+
+    for (int i = 0; i < size - 1; i++)
+        text[i] = fgetc(r);
+
+    fclose(r);
+    insert(address, p, text);
+
+    return;
+}
+
 int main()
 {
     createNewFile("test.txt");
     struct pos start = {1, 0};
     insert("test.txt", start, "Salam\nKhobi?");
     struct pos ran = {2, 1};
-    cutstr("test.txt", ran, 3, 1);
+    cutstr("test.txt", ran, 3, 0);
+    ran.line = 1;
+    ran.position = 4;
+    pastestr("test.txt", ran);
     return 17;
 }
