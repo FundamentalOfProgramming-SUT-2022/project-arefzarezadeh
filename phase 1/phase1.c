@@ -39,6 +39,17 @@ int getPos(char *address, struct pos p)
     return position;
 }
 
+int sizeString(char *text)
+{
+    int x = 0;
+    while (1)
+    {
+        if (text[x] == '\0' || text[x] == EOF)
+            return x;
+        x++;
+    }
+}
+
 void createNewFile(char *address)
 {
     FILE *f = fopen(address, "w");
@@ -198,6 +209,92 @@ void pastestr(char *address, struct pos p)
     return;
 }
 
+char * correctStar(char *text)
+{
+    char *replacement = (char *) malloc(sizeof(char) * (sizeString(text) + 1));
+    int pos = 0;
+    for (int i = 0; i < sizeString(text); i++)
+    {
+        if (text[i] == '\\' && text[i + 1] == '*')
+        {
+            replacement[pos] = '*';
+            i++;
+        }
+        else
+            replacement[pos] = text[i];
+        pos++;
+    }
+    replacement[pos] = '\0';
+    return replacement;
+}
+
+bool wordcmp(char *realWord, char *text)
+{
+    int size = sizeString(text);
+    bool startWild = (text[0] == '*');
+    bool endWild = (text[size - 1] == '*' && text[size - 2] != '\\');
+    char *correctedText = correctStar(text);
+    size = sizeString(correctedText);
+
+    if (!endWild && !startWild) //-------------------------------------case 1
+        return !strcmp(realWord, correctedText);
+
+    if (!startWild && endWild) //--------------------------------------case 2
+    {
+        if (sizeString(realWord) < size - 1)
+            return false;
+        for (int i = 0; i < size - 1; i++)
+        {
+            if (realWord[i] != correctedText[i])
+                return false;
+        }
+        return true;
+    }
+
+    if (startWild && !endWild) //--------------------------------------case 3
+    {
+        int wordSize = sizeString(realWord);
+        if (wordSize < size - 1)
+            return false;
+        for (int i = 1; i < size; i++)
+        {
+            if (realWord[wordSize - i] != correctedText[size - i])
+                return false;
+        }
+        return true;
+    }
+
+    if (startWild && endWild) //---------------------------------------case 4
+    {
+        int wordSize = sizeString(realWord);
+        if (wordSize < size - 2)
+            return false;
+        for (int i = 0; i < wordSize - size + 3; i++)
+        {
+            bool isSimilar = true;
+            for (int pos = 1; pos < size - 1; pos++)
+            {
+                if (realWord[i + pos - 1] != correctedText[pos])
+                {
+                    isSimilar = false;
+                    break;
+                }
+            }
+            if (isSimilar)
+                return true;
+        }
+        return false;
+    }
+}
+
+int * find(char *address, char *textToBeFound, bool attributes[4])
+{
+    int size = sizeString(textToBeFound);
+    bool startWild = (textToBeFound[0] == '*');
+    bool endWild = (textToBeFound[size - 1] == '*' && textToBeFound[size - 2] != '\\');
+    printf("%d:%d", startWild, endWild);
+}
+
 int main()
 {
     createNewFile("test.txt");
@@ -208,5 +305,24 @@ int main()
     ran.line = 1;
     ran.position = 4;
     pastestr("test.txt", ran);
+
+    /*char *text = (char *) malloc(10 * sizeof(char));
+    char c = getchar();
+    int i = 0;
+    printf("%d\n", i);
+    while (c != EOF && c != '\n')
+    {
+        text[i] = c;
+        i++;
+        c = getchar();
+        printf("%d\n", i);
+    }
+    text[i] = '\0';
+    printf("%s\n%d\n\n", text, strcmp(text, "hello\\*"));*/
+
+    printf("%d\n", wordcmp("hel*lo*", "*lo\\*"));
+    printf("%s\n", "hello\\*");
+    printf("%s\n", correctStar("hello*"));
+    //find("test.txt", "hello*", 0);
     return 17;
 }
