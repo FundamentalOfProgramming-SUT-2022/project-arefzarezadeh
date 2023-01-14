@@ -379,7 +379,7 @@ int findByWord(char *address, char *textToBeFound, int from, bool countFirstWord
     int foundChars = 0;
     int charNum = 0;
     int wordNum = 1;
-    int setPos = 0;
+    int setPos = 1;
     FILE *r = fopen(address, "r");
     fseek(r, 0, SEEK_END);
     int size = ftell(r) - from;
@@ -388,7 +388,7 @@ int findByWord(char *address, char *textToBeFound, int from, bool countFirstWord
     bool found = false;
 
     for (int i = 0; i < from; i++)
-        fgetc(r);
+        fgetword(r);
 
     while (charNum < size)
     {
@@ -407,11 +407,13 @@ int findByWord(char *address, char *textToBeFound, int from, bool countFirstWord
             setPos = wordNum;
         if (foundChars >= sizeString(textToBeFound))
         {
-            if (!(!countFirstWord && setPos == 0))
+            if (countFirstWord || setPos != 1)
             {
                 found = true;
                 break;
             }
+            else if (setPos == 1)
+                setPos++;
         }
     }
     fclose(r);
@@ -424,28 +426,70 @@ int findByWord(char *address, char *textToBeFound, int from, bool countFirstWord
 
 int * find(char *address, char *textToBeFound, int from, int attributes[4])
 {
-    printf("//opened find\\\\\n");
-
-
-
+    //printf("//opened find\\\\\n");
 
     int *output;
     output = (int *)calloc(1, sizeof(int));
 
-    if (!attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
+    if (!attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])//normal find
         *output = normalFind(address, textToBeFound, 0, true);
-    else if (!attributes[0] && !attributes[1] && attributes[2] && !attributes[3])
+    else if (!attributes[0] && !attributes[1] && attributes[2] && !attributes[3])//find by word
         *output = findByWord(address, textToBeFound, 0, true);
-    else if (attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
+    else if (attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])//count
     {
         int x = normalFind(address, textToBeFound, from, !from);
-        printf("..%d..\n", x + from);
         if (x == -1)
             *output = 0;
         else
             *output = 1 + *find(address, textToBeFound, x + 1 + from, attributes);
-//        if (!from && *output > 1)
-//            *output -= 1;
+    }//--------------end of count
+    else if (!attributes[0] && attributes[1] && !attributes[2] && !attributes[3])//find at
+    {
+        int nfrom = from;
+        int x;
+        for (int i = 0; i < attributes[1]; i++)
+        {
+            x = normalFind(address, textToBeFound, nfrom, !nfrom);
+            if (x != -1)
+                nfrom = x + 1 + nfrom;
+            else
+            {
+                nfrom = 0;
+                break;
+            }
+        }
+        *output = nfrom - 1;
+    }//-------end of find at
+    else if (!attributes[0] && attributes[1] && attributes[2] && !attributes[3])//find at by word
+    {
+        int nfrom = from;
+        int wfrom = 0;
+        int y = normalFind(address, textToBeFound, nfrom, !nfrom);
+        for (int i = 0; i < attributes[1]; i++)
+        {
+            int x = normalFind(address, textToBeFound, nfrom, !nfrom);
+            if (x != -1)
+            {
+                int b = findByWord(address, textToBeFound, nfrom, true);
+                printf("//%d\\\\\n", b);
+                wfrom += b;
+                nfrom = x + 1 + nfrom;
+            }
+            else
+            {
+                wfrom = -2;
+                nfrom = 0;
+                break;
+            }
+        }
+            *output = wfrom;
+    }//------end of find at by word
+    else if (!attributes[0] && !attributes[1] && !attributes[2] && attributes[3])//find all
+    {
+        int x = normalFind(address, textToBeFound, from, true);
+        {
+
+        }
     }
     return output;
 }
@@ -454,7 +498,7 @@ int main()
 {
     createNewFile("test.txt");
     struct pos start = {1, 0};
-    insert("test.txt", start, "b b b b Salam\nKhobi?\nchert Khobi? chert a a a chert2 chert chert3");
+
     //struct pos ran = {2, 1};
     //cutstr("test.txt", ran, 3, 0);
     //ran.line = 1;
@@ -480,19 +524,21 @@ int main()
 //    printf("%s\n", "hello\\*");
 
     FILE *x = fopen("test.txt", "r");
-    char *c = getWord("*lam K*", 1);
-    printf("%s:-->%d\n", c, sizeString(c));
-    c = getWord("*lam K*", 2);
-    printf("%s:-->%d\n", c, sizeString(c));
-    c = fgetword(x, CAPACITY);
-    printf("%s:-->%d\n", c, sizeString(c));
-    c = fgetword(x, CAPACITY);
-    printf("%s:-->%d\n", c, sizeString(c));
+//    char *c = getWord("*lam K*", 1);
+//    printf("%s:-->%d\n", c, sizeString(c));
+//    c = getWord("*lam K*", 2);
+//    printf("%s:-->%d\n", c, sizeString(c));
+//    c = fgetword(x, CAPACITY);
+//    printf("%s:-->%d\n", c, sizeString(c));
+//    c = fgetword(x, CAPACITY);
+//    printf("%s:-->%d\n", c, sizeString(c));
 
-    int att[4] = {0, 0, 1, 0};
-    for (int i = 1; i <= 15; i++)
-        printf("%s\n", getWord("b b b b Salam\nKhobi?\nchert Khobi? chert a a a chert2 chert chert3", i));
-    printf(",,%d,,\n", *find("test.txt", "Salam", 0, att));
+    int att[4] = {0, 2, 1, 0};
+//    for (int i = 1; i <= 15; i++)
+//        printf("%s\n", getWord("b b b b Salam\nKhobi?\nchert Khobi? chert a a a chert2 chert chert3", i));
+    insert("test.txt", start, "b b b b Salam\nKhobi?\nchert Khobi? chert a a chert2 a chert chert3");
+    //printf(",,%d,,\n", findByWord("test.txt", "b", 1, true));
+    printf(",,%d,,\n", *find("test.txt", "Khobi?", 0, att));
 
     //find("test.txt", "hello*", 0);
     return 17;
