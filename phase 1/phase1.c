@@ -373,6 +373,54 @@ int normalFind(char *address, char *textToBeFound, int from, bool countFirstWord
         return -1;
 }
 
+int findByWord(char *address, char *textToBeFound, int from, bool countFirstWord)
+{
+    int foundWords = 0;
+    int foundChars = 0;
+    int charNum = 0;
+    int wordNum = 1;
+    int setPos = 0;
+    FILE *r = fopen(address, "r");
+    fseek(r, 0, SEEK_END);
+    int size = ftell(r) - from;
+    fseek(r, 0, SEEK_SET);
+
+    bool found = false;
+
+    for (int i = 0; i < from; i++)
+        fgetc(r);
+
+    while (charNum < size)
+    {
+        char c = fgetc(r);
+        while (c == ' ')
+            c = fgetc(r);
+        fseek(r, -1, SEEK_CUR);
+        char *tmp = fgetword(r, CAPACITY);
+        if (wordcmp(tmp, getWord(textToBeFound, foundWords + 1)))
+            foundChars += sizeString(getWord(textToBeFound, ++foundWords)) + 1;
+        else
+            foundChars = foundWords = 0;
+        charNum += sizeString(tmp) + 1;
+        wordNum++;
+        if (!foundWords)
+            setPos = wordNum;
+        if (foundChars >= sizeString(textToBeFound))
+        {
+            if (!(!countFirstWord && setPos == 0))
+            {
+                found = true;
+                break;
+            }
+        }
+    }
+    fclose(r);
+    if (found)
+        return setPos;
+    else
+        return -1;
+}
+
 
 int * find(char *address, char *textToBeFound, int from, int attributes[4])
 {
@@ -386,6 +434,8 @@ int * find(char *address, char *textToBeFound, int from, int attributes[4])
 
     if (!attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
         *output = normalFind(address, textToBeFound, 0, true);
+    else if (!attributes[0] && !attributes[1] && attributes[2] && !attributes[3])
+        *output = findByWord(address, textToBeFound, 0, true);
     else if (attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
     {
         int x = normalFind(address, textToBeFound, from, !from);
@@ -439,10 +489,10 @@ int main()
     c = fgetword(x, CAPACITY);
     printf("%s:-->%d\n", c, sizeString(c));
 
-    int att[4] = {1, 0, 0, 0};
+    int att[4] = {0, 0, 1, 0};
     for (int i = 1; i <= 15; i++)
         printf("%s\n", getWord("b b b b Salam\nKhobi?\nchert Khobi? chert a a a chert2 chert chert3", i));
-    printf(",,%d,,\n", *find("test.txt", "**", 0, att));
+    printf(",,%d,,\n", *find("test.txt", "Salam", 0, att));
 
     //find("test.txt", "hello*", 0);
     return 17;
