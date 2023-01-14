@@ -1,5 +1,9 @@
 #include<stdio.h>
+#include<stdlib.h>
 #include<stdbool.h>
+#include<string.h>
+
+#define CAPACITY 255
 
 struct pos
 {
@@ -48,6 +52,46 @@ int sizeString(char *text)
             return x;
         x++;
     }
+}
+
+char * getWord(char *text, int index)
+{
+    int i = 1;
+    int textPos = 0;
+    //while (text[textPos] == ' ' && text[textPos] == '\n')
+    char *word = (char *) malloc(CAPACITY * sizeof(char));
+    while (1)
+    {
+        if (i == index)
+        {
+            int position = 0;
+            while (text[textPos] != ' ' && text[textPos] != '\0' && text[textPos] != '\n' && text[textPos] != EOF)
+                word[position++] = text[textPos++];
+            textPos++;
+            word[position] = '\0';
+            break;
+        }
+
+        while (text[textPos] != ' ' && text[textPos] != '\0' && text[textPos] != '\n' && text[textPos] != EOF)
+            textPos++;
+        textPos++;
+        i++;
+    }
+    return word;
+}
+
+char * fgetword(FILE *r, int cap)
+{
+    char *word = (char *) malloc(cap * sizeof(char));
+    char c = fgetc(r);
+    int pos = 0;
+    while (c != ' ' && c != '\n' && c != '\0' && c != EOF && pos < cap)
+    {
+        word[pos++] = c;
+        c = fgetc(r);
+    }
+    word[pos] = '\0';
+    return word;
 }
 
 void createNewFile(char *address)
@@ -287,24 +331,85 @@ bool wordcmp(char *realWord, char *text)
     }
 }
 
-int * find(char *address, char *textToBeFound, bool attributes[4])
+int normalFind(char *address, char *textToBeFound, int from, bool countFirstWord)
 {
-    int size = sizeString(textToBeFound);
-    bool startWild = (textToBeFound[0] == '*');
-    bool endWild = (textToBeFound[size - 1] == '*' && textToBeFound[size - 2] != '\\');
-    printf("%d:%d", startWild, endWild);
+    int foundWords = 0;
+    int foundChars = 0;
+    int charNum = 0;
+    int setPos = 0;
+    FILE *r = fopen(address, "r");
+    fseek(r, 0, SEEK_END);
+    int size = ftell(r) - from;
+    fseek(r, 0, SEEK_SET);
+
+    bool found = false;
+
+    for (int i = 0; i < from; i++)
+        fgetc(r);
+
+    while (charNum < size)
+    {
+        char *tmp = fgetword(r, CAPACITY);
+        if (wordcmp(tmp, getWord(textToBeFound, foundWords + 1)))
+            foundChars += sizeString(getWord(textToBeFound, ++foundWords)) + 1;
+        else
+            foundChars = foundWords = 0;
+        charNum += sizeString(tmp) + 1;
+        if (!foundWords)
+            setPos = charNum;
+        if (foundChars >= sizeString(textToBeFound))
+        {
+            if (!(!countFirstWord && setPos == 0))
+            {
+                found = true;
+                break;
+            }
+        }
+    }
+    fclose(r);
+    if (found)
+        return setPos;
+    else
+        return -1;
+}
+
+
+int * find(char *address, char *textToBeFound, int from, int attributes[4])
+{
+    printf("//opened find\\\\\n");
+
+
+
+
+    int *output;
+    output = (int *)calloc(1, sizeof(int));
+
+    if (!attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
+        *output = normalFind(address, textToBeFound, 0, true);
+    else if (attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
+    {
+        int x = normalFind(address, textToBeFound, from, !from);
+        printf("..%d..\n", x + from);
+        if (x == -1)
+            *output = 0;
+        else
+            *output = 1 + *find(address, textToBeFound, x + 1 + from, attributes);
+//        if (!from && *output > 1)
+//            *output -= 1;
+    }
+    return output;
 }
 
 int main()
 {
     createNewFile("test.txt");
     struct pos start = {1, 0};
-    insert("test.txt", start, "Salam\nKhobi?");
-    struct pos ran = {2, 1};
-    cutstr("test.txt", ran, 3, 0);
-    ran.line = 1;
-    ran.position = 4;
-    pastestr("test.txt", ran);
+    insert("test.txt", start, "b b b b Salam\nKhobi?\nchert Khobi? chert a a a chert2 chert chert3");
+    //struct pos ran = {2, 1};
+    //cutstr("test.txt", ran, 3, 0);
+    //ran.line = 1;
+    //ran.position = 4;
+    //pastestr("test.txt", ran);
 
     /*char *text = (char *) malloc(10 * sizeof(char));
     char c = getchar();
@@ -316,13 +421,29 @@ int main()
         i++;
         c = getchar();
         printf("%d\n", i);
+
     }
     text[i] = '\0';
     printf("%s\n%d\n\n", text, strcmp(text, "hello\\*"));*/
 
-    printf("%d\n", wordcmp("hel*lo*", "*lo\\*"));
-    printf("%s\n", "hello\\*");
-    printf("%s\n", correctStar("hello*"));
+//    printf("%d\n", wordcmp("hel*lo*", "*lo\\*"));
+//    printf("%s\n", "hello\\*");
+
+    FILE *x = fopen("test.txt", "r");
+    char *c = getWord("*lam K*", 1);
+    printf("%s:-->%d\n", c, sizeString(c));
+    c = getWord("*lam K*", 2);
+    printf("%s:-->%d\n", c, sizeString(c));
+    c = fgetword(x, CAPACITY);
+    printf("%s:-->%d\n", c, sizeString(c));
+    c = fgetword(x, CAPACITY);
+    printf("%s:-->%d\n", c, sizeString(c));
+
+    int att[4] = {1, 0, 0, 0};
+    for (int i = 1; i <= 15; i++)
+        printf("%s\n", getWord("b b b b Salam\nKhobi?\nchert Khobi? chert a a a chert2 chert chert3", i));
+    printf(",,%d,,\n", *find("test.txt", "**", 0, att));
+
     //find("test.txt", "hello*", 0);
     return 17;
 }
