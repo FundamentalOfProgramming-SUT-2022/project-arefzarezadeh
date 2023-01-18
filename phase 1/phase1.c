@@ -490,7 +490,7 @@ void pastestr(char *address, struct pos p)
 //    }
 //    return output;
 //}
-
+//
 int main()
 {
     createNewFile("test.txt");
