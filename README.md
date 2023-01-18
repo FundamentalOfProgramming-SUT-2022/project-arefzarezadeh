@@ -1,2 +1,3 @@
 # project-arefzarezadeh
-\nMohammad Aref Zarezadeh\n401106017
+Mohammad Aref Zarezadeh
+401106017
