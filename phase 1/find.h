@@ -241,6 +241,10 @@ bool wordcmp(char *realWord, char *text)
 long normalFind(FILE *r, char *textToBeFound, bool byword)
 {
     long size = sizeofFile(r);
+
+    if (size <= 0)
+        return -1;
+
     long current = ftell(r);
 
     int numberOfWords = fcountWords(r);

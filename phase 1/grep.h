@@ -3,7 +3,10 @@
 #include<string.h>
 #include<stdbool.h>
 
-#include "find.h"
+//#include "find.h"
+
+#define MAX_LINE_LENGTH 10000
+#define MAX_ADDRESS_LENGTH 255
 
 int getLine(char *address, int index)
 {
@@ -16,6 +19,108 @@ int getLine(char *address, int index)
     }
     fclose(r);
     return lines;
+}
+
+int countFileLines(char *address)
+{
+    FILE *read = fopen(address, "r");
+    char c = fgetc(read);
+    int count = 1;
+    while (c != EOF)
+    {
+        if (c == '\n')
+            count++;
+        c = fgetc(read);
+    }
+    fclose(read);
+    return count;
+}
+
+//void fprintLine(char *address, int line, char *outputName)
+//{
+//    FILE *r = fopen(address, "r");
+//    char hiddenAddress[MAX_ADDRESS_LENGTH] = ".hidden/";
+//    strcat(hiddenAddress, outputName);
+//    FILE *write = fopen(hiddenAddress, "w");
+//    fseek(r, 0, SEEK_END);
+//    long size = ftell(r);
+//    fseek(r, 0, SEEK_SET);
+//    long position = ftell(r);
+//
+//    int seenLines = 1;
+//
+//    while (seenLines < line && position < size)
+//    {
+//        if (fgetc(r) == '\n')
+//            seenLines++;
+//        position++;
+//    }
+//
+//    char c = fgetc(r);
+//    while (c != '\n' && c != EOF)
+//    {
+//        fputc(c, write);
+//        c = fgetc(r);
+//        position++;
+//    }
+//    fclose(r);
+//    fclose(write);
+//    return;
+//}
+
+void textComparator(char *address1, char *address2)
+{
+    char line1[MAX_LINE_LENGTH];
+    char line2[MAX_LINE_LENGTH];
+
+    int countLines1 = countFileLines(address1);
+    int countLines2 = countFileLines(address2);
+
+    FILE *read1 = fopen(address1, "r");
+    FILE *read2 = fopen(address2, "r");
+
+    int i;
+
+    for (i = 1; i <= countLines1 && i <= countLines2; i++)
+    {
+        fgets(line1, MAX_LINE_LENGTH, read1);
+        fgets(line2, MAX_LINE_LENGTH, read2);
+        if (line1[strlen(line1) - 1] == '\n')
+            line1[strlen(line1) - 1] = '\0';
+        if (line2[strlen(line2) - 1] == '\n')
+            line2[strlen(line2) - 1] = '\0';
+
+        if (strcmp(line1, line2))
+        {
+            printf("============ #%d ============\n%s\n%s\n", i, line1, line2);
+        }
+    }
+
+    if (i <= countLines1)
+    {
+        printf(">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n", i, countLines1);
+        while (i++ <= countLines1)
+        {
+            fgets(line1, MAX_LINE_LENGTH, read1);
+            if (line1[strlen(line1) - 1] == '\n')
+                line1[strlen(line1) - 1] = '\0';
+            printf("%s\n", line1);
+        }
+    }
+
+    if (i <= countLines2)
+    {
+        printf(">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n", i, countLines2);
+        while (i++ <= countLines2)
+        {
+            fgets(line1, MAX_LINE_LENGTH, read2);
+            if (line1[strlen(line1) - 1] == '\n')
+                line1[strlen(line1) - 1] = '\0';
+            printf("%s\n", line1);
+        }
+    }
+
+    return;
 }
 
 void printLine(char *address, int line)

@@ -72,6 +72,17 @@ int getPos(char *address, struct pos p)
 //    SetFileAttributes(".hidden files", att + FILE_ATTRIBUTE_HIDDEN);
 //}
 
+char firstNonSpaceChar(FILE *r, long position)
+{
+    printf("%d\n", position);
+    char c = fgetc(r);
+    while (c == ' ')
+        c = fgetc(r);
+        printf("this char is |%c| at |%ld|\n", c, position);
+    fseek(r, position, SEEK_SET);
+    return c;
+}
+
 void createNewFile(char *address)
 {
     FILE *f = fopen(address, "w");
@@ -97,10 +108,41 @@ void copyFile(char *fromAdress, char *toAdress)
     return;
 }
 
+void undoHandler(char *address)
+{
+    copyFile(address, ".hidden/undo.txt");
+    FILE *f = fopen(".hidden/undo_file_path.txt", "w");
+    fputs(address, f);
+    fclose(f);
+    return;
+}
+
+bool undo()
+{
+    char address[CAPACITY];
+    FILE *r = fopen(".hidden/undo_file_path.txt", "r");
+
+    if (r == NULL)
+        return false;
+
+    fgets(address, CAPACITY, r);
+    fclose(r);
+
+    if (!strcmp(address, ""))
+        return false;
+
+    copyFile(address, ".hidden/tmp.txt");
+    copyFile(".hidden/undo.txt", address);
+    copyFile(".hidden/tmp.txt", ".hidden/undo.txt");
+
+    return true;
+}
+
 void insert(char *address, struct pos p, char *text)
 {
+    undoHandler(address);
     FILE *r = fopen(address, "r");
-    FILE *w = fopen("tmp.txt", "w");
+    FILE *w = fopen(".hidden/tmp.txt", "w");
     int i = 1, j = 0;
     while (1)
     {
@@ -129,7 +171,7 @@ void insert(char *address, struct pos p, char *text)
     }
     fclose(r);
     fclose(w);
-    copyFile("tmp.txt", address);
+    copyFile(".hidden/tmp.txt", address);
 
     return;
 }
@@ -151,9 +193,10 @@ void cat(char *address)
 
 void removestr(char *address, struct pos p, int size, bool forward)
 {
+    undoHandler(address);
     int position = getPos(address, p), k = 0;
     FILE *read = fopen(address, "r");
-    FILE *tmp = fopen("tmp.txt", "w");
+    FILE *tmp = fopen(".hidden/tmp.txt", "w");
 
     while (1)
     {
@@ -169,7 +212,7 @@ void removestr(char *address, struct pos p, int size, bool forward)
 
     fclose(read);
     fclose(tmp);
-    copyFile("tmp.txt", address);
+    copyFile(".hidden/tmp.txt", address);
     return;
 }
 
@@ -177,7 +220,7 @@ void copystr(char *address, struct pos p, int size, bool forward)
 {
     int position = getPos(address, p);
     FILE *read = fopen(address, "r");
-    FILE *clipboard = fopen("clipboard.txt", "w");
+    FILE *clipboard = fopen(".hidden/clipboard.txt", "w");
     int startingPos, endingPos;
 
     if (!forward)
@@ -209,13 +252,16 @@ void copystr(char *address, struct pos p, int size, bool forward)
 
 void cutstr(char *address, struct pos p, int size, bool forward)
 {
+    undoHandler(address);
     copystr(address, p, size, forward);
     removestr(address, p, size, forward);
+    return;
 }
 
 void pastestr(char *address, struct pos p)
 {
-    FILE *r = fopen("clipboard.txt", "r");
+    undoHandler(address);
+    FILE *r = fopen(".hidden/clipboard.txt", "r");
     fseek(r, 0, SEEK_END);
     int size = ftell(r);
     fseek(r, 0, SEEK_SET);
@@ -231,20 +277,220 @@ void pastestr(char *address, struct pos p)
     return;
 }
 
+void insertTab(char *address, int position, int tab_count)
+{
+    char spaces[4 * tab_count + 1];
+    for (int i = 0; i < 4 * tab_count; i++)
+        spaces[i] = ' ';
+    spaces[tab_count * 4] = '\0';
+    insert(address, getPosFromIndex(address, position), spaces);
+    return;
+}
+
+void auto_indent(char *address)
+{
+    undoHandler(address);
+
+    FILE *write = fopen(".hidden/tmp_indent.txt", "w");
+    FILE *read = fopen(address, "r");
+
+    char previous2 = '\0';
+    char previous = '\0';
+    char current = '\0';
+
+    int count_curly_brackets = 0;
+    int count_white_space = 0;
+    bool new_line = true;
+
+    while (1)
+    {
+        if (new_line)
+        {
+            current = fgetc(read);
+            while (current == ' ' || current == '\t')
+                current = fgetc(read);
+
+            if (current == EOF)
+                break;
+
+            if (current == '\n')
+            {
+                if (previous != '{' && previous2 != '}')
+                    fputc('\n', write);
+                previous2 = previous;
+                previous = current;
+                continue;
+            }
+            else
+                new_line = false;
+
+            if (current == '}')
+                count_curly_brackets--;
+
+            for (int i = 0; i < 4 * count_curly_brackets; i++)
+                fputc(' ', write);
+
+            if (current == '{')
+            {
+                count_curly_brackets++;
+                fputc('{', write);
+                fputc('\n', write);
+                previous2 = '{';
+                previous = '\n';
+                new_line = true;
+                continue;
+            }
+
+            if (current == '}')
+            {
+                if (previous != '\n')
+                {
+                    fputc('\n', write);
+                    previous2 = previous = '\0';
+                    new_line = true;
+                    for (int i = 0; i < 4 * count_curly_brackets; i++)
+                        fputc(' ', write);
+                }
+
+                fputc('}', write);
+                fputc('\n', write);
+                previous2 = '}';
+                previous = '\n';
+                new_line = true;
+                continue;
+            }
+
+            fputc(current, write);
+            new_line = false;
+            previous2 = previous;
+            previous = current;
+            continue;
+        }
+
+        current = fgetc(read);
+
+        if (current == EOF)
+            break;
+
+        if (current == ' ')
+        {
+            count_white_space++;
+            new_line = false;
+            fputc(current, write);
+            previous2 = previous;
+            previous = current;
+            continue;
+        }
+        else if (current != '{')
+            count_white_space = 0;
+
+        if (current == '\n')
+        {
+            new_line = true;
+            fputc(current, write);
+            previous2 = previous;
+            previous = current;
+            continue;
+        }
+
+        if (current != '{' && current != '}')
+        {
+            new_line = false;
+            fputc(current, write);
+            previous2 = previous;
+            previous = current;
+            continue;
+        }
+
+        if (current == '{')
+        {
+            count_curly_brackets++;
+            new_line = true;
+            if (count_white_space == 0)
+                fputc(' ', write);
+            else if (count_white_space > 1)
+                fseek(write, 1 - count_white_space, SEEK_CUR);
+            fputc(current, write);
+            fputc('\n', write);
+            previous2 = previous;
+            previous = current;
+            continue;
+        }
+
+        if (current == '}')
+        {
+            count_curly_brackets--;
+            new_line = true;
+            fputc('\n', write);
+            for (int i = 0; i < 4 * count_curly_brackets; i++)
+                fputc(' ', write);
+            fputc(current, write);
+            previous2 = previous;
+            previous = current;
+            continue;
+        }
+    }
+
+    fclose(read);
+    fclose(write);
+    copyFile(".hidden/tmp_indent.txt", address);
+    return;
+}
+
 int main()
 {
-    createNewFile("test.txt");
+    //createNewFile("test.txt");
+    //createNewFile("text.txt");
     struct pos start = {1, 0};
 
-    //FILE *x = fopen("test.txt", "r");
 
-    int att[4] = {0, 0, 0, 1};
+    //insert("test.txt", start, "b b b b Salam\nKhobi?\nchert Khobi? chert a a b chert2 a chert chert3");
+    //insert("text.txt", start, "{{}            }");
+    //auto_indent("text.txt");
+    FILE *r = fopen("text.txt", "r");
+    FILE *r2 = fopen("test.txt", "r");
 
-    insert("test.txt", start, "b b b b Salam\nKhobi?\nchert Khobi? chert a a b chert2 a chert chert3");
-    printLinkedList(find("test.txt", "b", att));
+    struct pos middle = {1, 4};
+    char text1[100];
+    char text2[100];
 
-    //printLine("test.txt", 3);
-    struct pos x = getPosFromIndex("test.txt", 21);
-    printf("\nline:%d\nposition:%d\n", x.line, x.position);
+    //insert("test.txt", middle, "xlolololx");
+    fgets(text1, 100, r);
+    fgets(text2, 100, r2);
+
+    printf("%d\n", strcmp(text1, text2));
+
+    fgets(text1, 100, r);
+    fgets(text2, 100, r2);
+
+    printf("%d\n", strcmp(text1, text2));
+
+    fgets(text1, 100, r);
+    fgets(text2, 100, r2);
+
+    printf("%d\n", strcmp(text1, text2));
+    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
+
+    fgets(text1, 100, r);
+    fgets(text2, 100, r2);
+
+    printf("%d\n", strcmp(text1, text2));
+    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
+
+    fgets(text1, 100, r);
+    fgets(text2, 100, r2);
+
+    printf("%d\n", strcmp(text1, text2));
+    printf("%s/%s/%d/%d/%d\n", text1, text2, ftell(r), ftell(r2), strlen(text2));
+    fclose(r);
+    fclose(r2);
+
+    textComparator("text.txt", "test.txt");
+
+
+
+    undo();
+    undo();
+
     return 17;
 }
