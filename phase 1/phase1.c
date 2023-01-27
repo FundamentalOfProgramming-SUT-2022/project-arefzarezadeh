@@ -6,6 +6,7 @@
 
 #include "find.h"
 #include "grep.h"
+#include "tree.h"
 
 #define CAPACITY 255
 
@@ -18,10 +19,18 @@ struct pos
 struct pos getPosFromIndex(char *address, int index)
 {
     FILE *r = fopen(address, "r");
-    struct pos p = {1, 0};;
+    struct pos p = {-1, 0};
+    if (index >= 0)
+        p.line = 1;
     for (int i = 0; i < index; i++)
     {
-        if (fgetc(r) == '\n')
+        char c = fgetc(r);
+        if (c == EOF)
+        {
+            p.line = -1;
+            return p;
+        }
+        else if (c == '\n')
         {
             p.line += 1;
             p.position = 0;
@@ -31,7 +40,41 @@ struct pos getPosFromIndex(char *address, int index)
     }
     fclose(r);
     return p;
-};
+}
+
+struct pos getWordPosFromIndex(char *address, int index)
+{
+    FILE *r = fopen(address, "r");
+    bool space = true;
+    struct pos p = {1, 0};;
+    for (int i = 0; i < index; i++)
+    {
+        char c = fgetc(r);
+        if (c == EOF)
+        {
+            p.line = -1;
+            return p;
+        }
+        else if (c == '\n')
+        {
+            space = true;
+            p.line += 1;
+            p.position = 0;
+        }
+        else if (c == ' ' || c == '\t')
+            space = true;
+        else if (space)
+        {
+            space = false;
+            p.position += 1;
+        }
+        else
+            space = false;
+
+    }
+    fclose(r);
+    return p;
+}
 
 int getPos(char *address, struct pos p)
 {
@@ -437,60 +480,128 @@ void auto_indent(char *address)
     return;
 }
 
+bool replace(char *address, char *textToBeFound, char *replacementText, int attributes[2])
+{
+    int att[4] = {0};
+    FILE *read = fopen(address, "r");
+
+    if (attributes[0])
+    {
+        int count = 1;
+        att[1] = attributes[0];
+        while (count++ < attributes[0])
+        {
+            findNormal(read, textToBeFound);
+        }
+
+        int x = findNormal(read, textToBeFound);
+        printf("%d\n", x);
+        if (x == -1)
+            return false;
+
+        int length = getRealPos(read) - x;
+        fclose(read);
+
+        insert(address, getPosFromIndex(address, x), replacementText);
+        removestr(address, getPosFromIndex(address, x + strlen(replacementText)), length, true);
+        return true;
+    }
+
+    if (attributes[1])
+    {
+        int x = findNormal(read, textToBeFound);
+        printf("%d\n", x);
+        if (x == -1)
+            return true;
+
+        int length = getRealPos(read) - x;
+
+
+        //printf("x:%d\ngrp:%d\nlen:%d\n", x, getRealPos(read), length);
+
+        fclose(read);
+
+        insert(address, getPosFromIndex(address, x), replacementText);
+        removestr(address, getPosFromIndex(address, x + strlen(replacementText)), length, true);
+        return replace(address, textToBeFound, replacementText, attributes);
+    }
+
+    int x = findNormal(read, textToBeFound);
+    if (x == -1)
+        return true;
+
+    int length = getRealPos(read) - x;
+    fclose(read);
+
+    insert(address, getPosFromIndex(address, x), replacementText);
+    removestr(address, getPosFromIndex(address, x + strlen(replacementText)), length, true);
+}
+
 int main()
 {
     //createNewFile("test.txt");
     //createNewFile("text.txt");
     struct pos start = {1, 0};
+    //int att[4] = {0, 0, 0, 0};
+//    struct pos found1 = getWordPosFromIndex("test.txt", find("test.txt", "K*", att)->value);
+//    struct pos found2 = getWordPosFromIndex("test.txt", find("test.txt", "Kh\\*obi?", att)->value);
+//    printf("line:%d\n", found1.line);
+//    printf("pos:%d\n", found1.position);
+    int att[2] = {2, 0};
+    replace("test.txt", "K* c", "|locate|", att);
+//    FILE *read = fopen("test.txt", "r");
+//    printf("%d\n", findNormal(read, "K* c"));
 
 
     //insert("test.txt", start, "b b b b Salam\nKhobi?\nchert Khobi? chert a a b chert2 a chert chert3");
     //insert("text.txt", start, "{{}            }");
     //auto_indent("text.txt");
-    FILE *r = fopen("text.txt", "r");
-    FILE *r2 = fopen("test.txt", "r");
-
-    struct pos middle = {1, 4};
-    char text1[100];
-    char text2[100];
-
-    //insert("test.txt", middle, "xlolololx");
-    fgets(text1, 100, r);
-    fgets(text2, 100, r2);
-
-    printf("%d\n", strcmp(text1, text2));
-
-    fgets(text1, 100, r);
-    fgets(text2, 100, r2);
-
-    printf("%d\n", strcmp(text1, text2));
-
-    fgets(text1, 100, r);
-    fgets(text2, 100, r2);
-
-    printf("%d\n", strcmp(text1, text2));
-    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
-
-    fgets(text1, 100, r);
-    fgets(text2, 100, r2);
-
-    printf("%d\n", strcmp(text1, text2));
-    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
-
-    fgets(text1, 100, r);
-    fgets(text2, 100, r2);
-
-    printf("%d\n", strcmp(text1, text2));
-    printf("%s/%s/%d/%d/%d\n", text1, text2, ftell(r), ftell(r2), strlen(text2));
-    fclose(r);
-    fclose(r2);
-
-    textComparator("text.txt", "test.txt");
-
-
-
-    undo();
-    undo();
+//    FILE *r = fopen("text.txt", "r");
+//    FILE *r2 = fopen("test.txt", "r");
+//
+//    struct pos middle = {1, 4};
+//    char text1[100];
+//    char text2[100];
+//
+//    //insert("test.txt", middle, "xlolololx");
+//    fgets(text1, 100, r);
+//    fgets(text2, 100, r2);
+//
+//    printf("%d\n", strcmp(text1, text2));
+//
+//    fgets(text1, 100, r);
+//    fgets(text2, 100, r2);
+//
+//    printf("%d\n", strcmp(text1, text2));
+//
+//    fgets(text1, 100, r);
+//    fgets(text2, 100, r2);
+//
+//    printf("%d\n", strcmp(text1, text2));
+//    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
+//
+//    fgets(text1, 100, r);
+//    fgets(text2, 100, r2);
+//
+//    printf("%d\n", strcmp(text1, text2));
+//    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
+//
+//    fgets(text1, 100, r);
+//    fgets(text2, 100, r2);
+//
+//    printf("%d\n", strcmp(text1, text2));
+//    printf("%s/%s/%d/%d/%d\n", text1, text2, ftell(r), ftell(r2), strlen(text2));
+//    fclose(r);
+//    fclose(r2);
+//
+//    textComparator("text.txt", "test.txt");
+//
+//
+//
+//    undo();
+//    undo();
+//
+//    printTree(".", 0, -1);
 
     return 17;
 }
