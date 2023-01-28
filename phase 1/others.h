@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<string.h>
+#include<sys/stat.h>
 
 #define CAPACITY 255
 
@@ -112,20 +113,40 @@ int getPos(char *address, struct pos p)
 
 char firstNonSpaceChar(FILE *r, long position)
 {
-    printf("%d\n", position);
+    //printf("%d\n", position);
     char c = fgetc(r);
     while (c == ' ')
         c = fgetc(r);
-        printf("this char is |%c| at |%ld|\n", c, position);
+        //printf("this char is |%c| at |%ld|\n", c, position);
     fseek(r, position, SEEK_SET);
     return c;
 }
 
-void createNewFile(char *address)
+bool fileExists(char *address)
 {
+    struct stat file;
+    return (stat(address, &file) == 0);
+}
+
+bool createNewFile(char *address)
+{
+    if (fileExists(address))
+        return false;
+    char addressSoFar[CAPACITY] = {0};
+    int i = 0;
+    while (address[i] != '\0')
+    {
+        if (address[i] == '/')
+        {
+            if (!fileExists(addressSoFar))
+                mkdir(addressSoFar);
+        }
+        addressSoFar[i] = address[i];
+        i++;
+    }
     FILE *f = fopen(address, "w");
     fclose(f);
-    return;
+    return true;
 }
 
 void copyFile(char *fromAdress, char *toAdress)
@@ -268,11 +289,12 @@ void copystr(char *address, struct pos p, int size, bool forward)
     }
     else
     {
-        startingPos = position + 1;
-        endingPos = position + size;
+        startingPos = position;
+        endingPos = position + size - 1;
     }
 
-    fseek(read, startingPos, SEEK_SET);
+    for (int i = 0; i < startingPos; i++)
+        fgetc(read);
     int k = startingPos;
     while (1)
     {
@@ -492,7 +514,7 @@ bool replace(char *address, char *textToBeFound, char *replacementText, int attr
         }
 
         int x = findNormal(read, textToBeFound);
-        printf("%d\n", x);
+        //printf("%d\n", x);
         if (x == -1)
             return false;
 
@@ -507,7 +529,7 @@ bool replace(char *address, char *textToBeFound, char *replacementText, int attr
     if (attributes[1])
     {
         int x = findNormal(read, textToBeFound);
-        printf("%d\n", x);
+        //printf("%d\n", x);
         if (x == -1)
             return true;
 
