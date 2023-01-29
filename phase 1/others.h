@@ -72,6 +72,28 @@ struct pos getWordPosFromIndex(char *address, int index)
     return p;
 }
 
+void printfFormattedLinkedList(char *address, struct linkedList *list, struct pos (*function) (char *, int))
+{
+    struct linkedList *check = list;
+    if (check->value == -10)
+        return;
+    if (check->value == -1)
+        printf("-1\n");
+    else
+        printf("line:%d, position:%d\n", function(address, check->value).line, function(address, check->value).position);
+    if (check->next == NULL)
+        return;
+    check = check->next;
+    while (check->value != -10)
+    {
+        printf("line:%d, position:%d\n", function(address, check->value).line, function(address, check->value).position);
+        if (check->next == NULL)
+            break;
+        check = check->next;
+    }
+    return;
+}
+
 int getPos(char *address, struct pos p)
 {
     int position = 0, i = 1, j = 0;
@@ -169,30 +191,37 @@ void copyFile(char *fromAdress, char *toAdress)
 
 void undoHandler(char *address)
 {
-    copyFile(address, ".hidden/undo.txt");
-    FILE *f = fopen(".hidden/undo_file_path.txt", "w");
-    fputs(address, f);
-    fclose(f);
+    char hidden[CAPACITY] = ".hidden/";
+    strcat(hidden, address);
+    createNewFile(hidden);
+    copyFile(address, hidden);
+//    FILE *f = fopen(".hidden/undo_file_path.txt", "w");
+//    fputs(address, f);
+//    fclose(f);
     return;
 }
 
-bool undo()
+bool undo(char *address)
 {
-    char address[CAPACITY];
-    FILE *r = fopen(".hidden/undo_file_path.txt", "r");
-
-    if (r == NULL)
-        return false;
-
-    fgets(address, CAPACITY, r);
-    fclose(r);
-
-    if (!strcmp(address, ""))
+//    char address[CAPACITY];
+//    FILE *r = fopen(".hidden/undo_file_path.txt", "r");
+//
+//    if (r == NULL)
+//        return false;
+//
+//    fgets(address, CAPACITY, r);
+//    fclose(r);
+//
+//    if (!strcmp(address, ""))
+//        return false;
+    char hidden[CAPACITY] = ".hidden/";
+    strcat(hidden, address);
+    if (!fileExists(hidden))
         return false;
 
     copyFile(address, ".hidden/tmp.txt");
-    copyFile(".hidden/undo.txt", address);
-    copyFile(".hidden/tmp.txt", ".hidden/undo.txt");
+    copyFile(hidden, address);
+    copyFile(".hidden/tmp.txt", hidden);
 
     return true;
 }
@@ -485,8 +514,9 @@ void auto_indent(char *address)
             for (int i = 0; i < 4 * count_curly_brackets; i++)
                 fputc(' ', write);
             fputc(current, write);
-            previous2 = previous;
-            previous = current;
+            fputc('\n', write);
+            previous2 = current;
+            previous = '\n';
             continue;
         }
     }
@@ -508,21 +538,24 @@ bool replace(char *address, char *textToBeFound, char *replacementText, int attr
     {
         int count = 1;
         att[1] = attributes[0];
+        int ans = 0;
         while (count++ < attributes[0])
         {
-            findNormal(read, textToBeFound);
+            findNormal(read, textToBeFound) + 1;
         }
 
+        ans = getRealPos(read);
         int x = findNormal(read, textToBeFound);
         //printf("%d\n", x);
         if (x == -1)
             return false;
+        ans += x;
 
-        int length = getRealPos(read) - x;
+        int length = getRealPos(read) - ans;
         fclose(read);
 
-        insert(address, getPosFromIndex(address, x), replacementText);
-        removestr(address, getPosFromIndex(address, x + strlen(replacementText)), length, true);
+        insert(address, getPosFromIndex(address, ans), replacementText);
+        removestr(address, getPosFromIndex(address, ans + strlen(replacementText)), length, true);
         return true;
     }
 

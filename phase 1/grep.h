@@ -98,7 +98,7 @@ void textComparator(char *address1, char *address2)
 
     if (i <= countLines1)
     {
-        printf(">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n", i, countLines1);
+        printf("<<<<<<<<<<<< #%d - #%d <<<<<<<<<<<<\n", i, countLines1);
         while (i++ <= countLines1)
         {
             fgets(line1, MAX_LINE_LENGTH, read1);
