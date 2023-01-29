@@ -13,6 +13,8 @@
 #define COMMAND_LENGTH 10000
 #define MAX_STRING_SIZE 10000
 
+int terminalArman(char *command, int *index);
+
 /*
     Errors:
     -100: invalid input
@@ -21,6 +23,7 @@
     -301: size must be positive
     -302: you forgot to add file
     -303: you forgot to add pos
+    -304: forgot to add string
     -401: find attributes combination
     -402: forgot find pattern
     -403: at value
@@ -32,6 +35,8 @@
     -701: file 1 doesn't exist
     -702: file 2 doesn't exist
     -801: invalid depth
+    -901: this command cannot come after =D
+    -902: two strings in one command
 
 */
 
@@ -56,6 +61,9 @@ void errorHandler(int error)
         break;
     case -303:
         printf("You forgot to add pos / pos is invalid\n");
+        break;
+    case -304:
+        printf("You forgot to add string\n");
         break;
     case -401:
         printf("You can't use these find options together\n");
@@ -89,6 +97,12 @@ void errorHandler(int error)
         break;
     case -801:
         printf("Invalid depth\n");
+        break;
+    case -901:
+        printf("This command cannot come after =D\n");
+        break;
+    case -902:
+        printf("You cannot give two strings to a command\n");
         break;
 
     }
@@ -219,12 +233,16 @@ int terminalCreateNewFile(char *command, int *index)
         return -101;
 }
 
-int terminalInsert(char *command, int *index)
+int terminalInsert(char *command, int *index, bool arman)
 {
-    char *address;
-    char *content;
-    struct pos position;
-    for (int i = 0; i < 3; i++)
+    char *address = NULL;
+    char *content = NULL;
+    if (arman)
+    {
+        content = readFile(".hidden/output.txt");
+    }
+    struct pos position = {-1, 0};
+    while (1)
     {
         char *option = getString(command, index);
 
@@ -232,10 +250,17 @@ int terminalInsert(char *command, int *index)
 
         if (!strcmp(option, "--file"))
             file = true;
-        else if (!strcmp(option, "--str"))
+        else if (!strcmp(option, "--str") && content == NULL)
             str = true;
         else if (!strcmp(option, "--pos"))
             p = true;
+        else if (!strcmp(option, "--str") && content != NULL)
+        {
+            free(option);
+            return -902;
+        }
+        else if (!strcmp(option, ""))
+            break;
         else
         {
             free(option);
@@ -269,10 +294,18 @@ int terminalInsert(char *command, int *index)
             setPos(&position, option);
     }
 
+    if (address == NULL)
+        return -302;
     if (!fileExists(address))
         return -201;
+    if (content == NULL)
+        return -304;
 
-    char *trueContent = correctString(content);
+    char *trueContent;
+    if (!arman)
+        trueContent = correctString(content);
+    else
+        trueContent = content;
 
     insert(address, position, trueContent);
     return 1;
@@ -280,6 +313,9 @@ int terminalInsert(char *command, int *index)
 
 int terminalCat(char *command, int *index)
 {
+    bool isArmaned = false;
+    char *address = NULL;
+
     char *option = getString(command, index);
 
     if (strcmp(option, "--file"))
@@ -295,9 +331,27 @@ int terminalCat(char *command, int *index)
     for (int i = 0; i < size; i++)
         option[i] = option[i + 1];
 
-    if (fileExists(option))
+    address = option;
+
+    option = getString(command, index);
+    if (!strcmp(option, "=D"))
     {
-        cat(option);
+        isArmaned = true;
+        free(option);
+    }
+
+    if (fileExists(address))
+    {
+        char output[MAX_STRING_SIZE] = {0};
+        cat(address, output);
+        if (isArmaned)
+        {
+            FILE *write = fopen(".hidden/output.txt", "w");
+            fprintf(write, "%s", output);
+            fclose(write);
+            return terminalArman(command, index);
+        }
+        printf("%s", output);
         return 1;
     }
     else
@@ -546,11 +600,14 @@ int terminalPaste(char *command, int *index)
     return 1;
 }
 
-int terminalFind(char *command, int *index)
+int terminalFind(char *command, int *index, bool arman)
 {
     int attributes[4] = {0};
     char *address = NULL;
     char *textToBeFound = NULL;
+    bool isArmaned = false;
+    if (arman)
+        textToBeFound = readFile(".hidden/output.txt");
     while (1)
     {
         char *option = getString(command, index);
@@ -559,8 +616,13 @@ int terminalFind(char *command, int *index)
 
         if (!strcmp(option, "--file"))
             file = true;
-        else if (!strcmp(option, "--str"))
+        else if (!strcmp(option, "--str") && textToBeFound == NULL)
             str = true;
+        else if (!strcmp(option, "--str") && textToBeFound != NULL)
+        {
+            free(option);
+            return -902;
+        }
         else if (!strcmp(option, "-count"))
         {
             attributes[0] = 1;
@@ -577,6 +639,11 @@ int terminalFind(char *command, int *index)
         {
             attributes[3] = 1;
             continue;
+        }
+        else if (!strcmp(option, "=D"))
+        {
+            isArmaned = true;
+            break;
         }
         else if (!strcmp(option, ""))
             break;
@@ -597,7 +664,7 @@ int terminalFind(char *command, int *index)
             address = option;
         }
         else if (str)
-            textToBeFound = option;
+            textToBeFound = correctString(option);
         else if (opt_at)
         {
             if (stringToInt(option) <= 0)
@@ -614,34 +681,47 @@ int terminalFind(char *command, int *index)
         return -402;
 
     struct linkedList *list = find(address, textToBeFound, attributes);
+    char output[MAX_STRING_SIZE] = {0};
 
     if (!attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
-        printfFormattedLinkedList(address, list, getPosFromIndex);
+        printfFormattedLinkedList(address, list, getPosFromIndex, output);
     else if ( attributes[0] && !attributes[1] && !attributes[2] && !attributes[3])
-        printf("Found the pattern %d times.\n", list->value);
+        sprintf(output, "Found the pattern %d times.\n", list->value);
     else if (!attributes[0] &&  attributes[1] && !attributes[2] && !attributes[3])
-        printfFormattedLinkedList(address, list, getPosFromIndex);
+        printfFormattedLinkedList(address, list, getPosFromIndex, output);
     else if (!attributes[0] && !attributes[1] && !attributes[2] &&  attributes[3])
-        printfFormattedLinkedList(address, list, getPosFromIndex);
+        printfFormattedLinkedList(address, list, getPosFromIndex, output);
     else if (!attributes[0] && !attributes[1] &&  attributes[2] && !attributes[3])
-        printfFormattedLinkedList(address, list, getWordPosFromIndex);
+        printfFormattedLinkedList(address, list, getWordPosFromIndex, output);
     else if ( attributes[0] && !attributes[1] &&  attributes[2] && !attributes[3])
-        printf("Found the pattern %d times.\n", list->value);
+        sprintf(output, "Found the pattern %d times.\n", list->value);
     else if (!attributes[0] &&  attributes[1] &&  attributes[2] && !attributes[3])
-        printfFormattedLinkedList(address, list, getWordPosFromIndex);
+        printfFormattedLinkedList(address, list, getWordPosFromIndex, output);
     else if (!attributes[0] && !attributes[1] &&  attributes[2] &&  attributes[3])
-        printfFormattedLinkedList(address, list, getWordPosFromIndex);
+        printfFormattedLinkedList(address, list, getWordPosFromIndex, output);
     else
         return -401;
+
+    if (isArmaned)
+    {
+        FILE *write = fopen(".hidden/output.txt", "w");
+        fprintf(write, "%s", output);
+        fclose(write);
+        return terminalArman(command, index);
+    }
+
+    printf("%s", output);
 
     return 1;
 }
 
-int terminalReplace(char *command, int *index)
+int terminalReplace(char *command, int *index, bool arman)
 {
     char *address = NULL;
     char *textToBeFound = NULL;
     char *replacement = NULL;
+    if (arman)
+        textToBeFound = readFile(".hidden/output.txt");
     int attributes[2] = {0};
 
     while (1)
@@ -652,8 +732,13 @@ int terminalReplace(char *command, int *index)
 
         if (!strcmp(option, "--file"))
             file = true;
-        else if (!strcmp(option, "--str1"))
+        else if (!strcmp(option, "--str1") && textToBeFound == NULL)
             str1 = true;
+        else if (!strcmp(option, "--str1") && textToBeFound != NULL)
+        {
+            free(option);
+            return -902;
+        }
         else if (!strcmp(option, "--str2"))
             str2 = true;
         else if (!strcmp(option, "-at"))
@@ -682,9 +767,9 @@ int terminalReplace(char *command, int *index)
             address = option;
         }
         else if (str1)
-            textToBeFound = option;
+            textToBeFound = correctString(option);
         else if (str2)
-            replacement = option;
+            replacement = correctString(option);
         else if (opt_at)
         {
             if (stringToInt(option) <= 0)
@@ -711,12 +796,15 @@ int terminalReplace(char *command, int *index)
     return 1;
 }
 
-int terminalGrep(char *command, int *index)
+int terminalGrep(char *command, int *index, bool arman)
 {
     char *addresses[CAPACITY] = {NULL};
     char *textToBeFound = NULL;
+    if (arman)
+        textToBeFound = readFile(".hidden/output.txt");
     bool opt_c = false;
     bool opt_l = false;
+    bool isArmaned = false;
     int i = 0;
 
     char *option = getString(command, index);
@@ -739,13 +827,19 @@ int terminalGrep(char *command, int *index)
         free(option);
         option = getString(command, index);
     }
-    if (!strcmp(option, "--str"))
+    if (!strcmp(option, "--str") && textToBeFound == NULL)
     {
         free(option);
-        textToBeFound = getString(command, index);
+        textToBeFound = correctString(getString(command, index));
+    }
+    else if (!strcmp(option, "--str") && textToBeFound != NULL)
+    {
+        free(option);
+        return -902;
     }
 
-    option = getString(command, index);
+    if (!arman)
+        option = getString(command, index);
 
     if (!strcmp(option, "--files"))
     {
@@ -753,13 +847,19 @@ int terminalGrep(char *command, int *index)
         option = getString(command, index);
         while (strcmp(option, ""))
         {
+            if (!strcmp(option, "=D"))
+            {
+                isArmaned = true;
+                break;
+            }
             int fsize = strlen(option);
             for (int j = 0; j < fsize; j++)
                 option[j] = option[j + 1];
             addresses[i++] = option;
             option = getString(command, index);
         }
-        addresses[i] = NULL;
+        if (!isArmaned)
+            addresses[i] = NULL;
     }
     else
         return -100;
@@ -776,7 +876,17 @@ int terminalGrep(char *command, int *index)
     if (textToBeFound == NULL)
         return -402;
 
-    grep(addresses, i, textToBeFound, opt_c, opt_l);
+    char output[MAX_STRING_SIZE] = {0};
+    grep(addresses, i, textToBeFound, opt_c, opt_l, output);
+    if (isArmaned)
+    {
+        FILE *write = fopen(".hidden/output.txt", "w");
+        fprintf(write, "%s", output);
+        fclose(write);
+        return terminalArman(command, index);
+    }
+
+    printf("%s", output);
     return 1;
 }
 
@@ -835,6 +945,7 @@ int terminalCompare(char *command, int *index)
 {
     char *address1 = NULL;
     char *address2 = NULL;
+    bool isArmaned = false;
 
     char *option = getString(command, index);
     int fsize = strlen(option);
@@ -848,12 +959,28 @@ int terminalCompare(char *command, int *index)
         option[j] = option[j + 1];
     address2 = option;
 
+    option = getString(command, index);
+    if (!strcmp(option, "=D"))
+        isArmaned = true;
+
     if (!fileExists(address1))
         return -701;
     if (!fileExists(address2))
         return -702;
 
-    textComparator(address1, address2);
+    char output[MAX_STRING_SIZE] = {0};
+
+    textComparator(address1, address2, output);
+    if (isArmaned)
+    {
+        FILE *write = fopen(".hidden/output.txt", "w");
+        fprintf(write, "%s", output);
+        fclose(write);
+        return terminalArman(command, index);
+    }
+
+    printf("%s", output);
+
     return 1;
 }
 
@@ -879,19 +1006,39 @@ int terminalTree(char *command, int *index)
     if (depth < -1 || depth == 0)
         return -801;
 
+
+    char output[MAX_STRING_SIZE] = {0};
+    printTree("root", 0, depth, output);
+
     if (!strcmp(option, "=D"))
     {
-        terminalArman(command, index);
+        FILE *write = fopen(".hidden/output.txt", "w");
+        fprintf(write, "%s", output);
+        fclose(write);
+        return terminalArman(command, index);
     }
 
-    printTree("root", 0, depth);
+    printf("%s", output);
     return 1;
 }
 
 int terminalArman(char *command, int *index)
 {
     char *first = getString(command, index);
+    int output;
 
+    if (!strcmp(first, "insertstr"))
+        output = terminalInsert(command, index, true);
+    else if (!strcmp(first, "find"))
+        output = terminalFind(command, index, true);
+    else if (!strcmp(first, "grep"))
+        output = terminalGrep(command, index, true);
+    else if (!strcmp(first, "replace"))
+        output = terminalReplace(command, index, true);
+    else
+        return -901;
+
+    return output;
 }
 
 bool terminal()
@@ -913,7 +1060,7 @@ bool terminal()
     }
     else if (!strcmp(first, "insertstr"))
     {
-        int output = terminalInsert(command, &index);
+        int output = terminalInsert(command, &index, false);
         if (output != 1)
             errorHandler(output);
 
@@ -961,7 +1108,7 @@ bool terminal()
     }
     else if (!strcmp(first, "find"))
     {
-        int output = terminalFind(command, &index);
+        int output = terminalFind(command, &index, false);
         if (output != 1)
             errorHandler(output);
 
@@ -969,7 +1116,7 @@ bool terminal()
     }
     else if (!strcmp(first, "replace"))
     {
-        int output = terminalReplace(command, &index);
+        int output = terminalReplace(command, &index, false);
         if (output != 1)
             errorHandler(output);
 
@@ -977,7 +1124,7 @@ bool terminal()
     }
     else if (!strcmp(first, "grep"))
     {
-        int output = terminalGrep(command, &index);
+        int output = terminalGrep(command, &index, false);
         if (output != 1)
             errorHandler(output);
 
@@ -1021,6 +1168,10 @@ bool terminal()
 
 int main()
 {
+//    char text[MAX_STRING_SIZE] = {0};
+//    printTree("root", 0, 100, text);
+//    printf("%s", text);
+    //cat(".hidden/output.txt");
     while (terminal());
     //createNewFile("test.txt");
     //createNewFile("text.txt");
@@ -1084,7 +1235,7 @@ int main()
 //    undo();
 //    undo();
 //
-    printTree(".", 0, -1);
+    printTree(".", 0, -1, false);
 
     return 17;
 }

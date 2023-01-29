@@ -68,10 +68,12 @@ int countFileLines(char *address)
 //    return;
 //}
 
-void textComparator(char *address1, char *address2)
+void textComparator(char *address1, char *address2, char *output)
 {
     char line1[MAX_LINE_LENGTH];
     char line2[MAX_LINE_LENGTH];
+
+    char tmp[MAX_LINE_LENGTH] = {0};
 
     int countLines1 = countFileLines(address1);
     int countLines2 = countFileLines(address2);
@@ -83,6 +85,8 @@ void textComparator(char *address1, char *address2)
 
     for (i = 1; i <= countLines1 && i <= countLines2; i++)
     {
+        line1[0] = '\0';
+        line2[0] = '\0';
         fgets(line1, MAX_LINE_LENGTH, read1);
         fgets(line2, MAX_LINE_LENGTH, read2);
         if (line1[strlen(line1) - 1] == '\n')
@@ -92,48 +96,56 @@ void textComparator(char *address1, char *address2)
 
         if (strcmp(line1, line2))
         {
-            printf("============ #%d ============\n%s\n%s\n", i, line1, line2);
+            sprintf(tmp, "============ #%d ============\n%s\n%s\n", i, line1, line2);
+            strcat(output, tmp);
         }
     }
 
     if (i <= countLines1)
     {
-        printf("<<<<<<<<<<<< #%d - #%d <<<<<<<<<<<<\n", i, countLines1);
+        sprintf(tmp, "<<<<<<<<<<<< #%d - #%d <<<<<<<<<<<<\n", i, countLines1);
+        strcat(output, tmp);
         while (i++ <= countLines1)
         {
+            line1[0] = '\0';
             fgets(line1, MAX_LINE_LENGTH, read1);
             if (line1[strlen(line1) - 1] == '\n')
                 line1[strlen(line1) - 1] = '\0';
-            printf("%s\n", line1);
+            sprintf(tmp, "%s\n", line1);
+            strcat(output, tmp);
         }
     }
 
     if (i <= countLines2)
     {
-        printf(">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n", i, countLines2);
+        sprintf(tmp, ">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n", i, countLines2);
+        strcat(output, tmp);
         while (i++ <= countLines2)
         {
+            line1[0] = '\0';
             fgets(line1, MAX_LINE_LENGTH, read2);
             if (line1[strlen(line1) - 1] == '\n')
                 line1[strlen(line1) - 1] = '\0';
-            printf("%s\n", line1);
+            sprintf(tmp, "%s\n", line1);
+            strcat(output, tmp);
         }
     }
 
     return;
 }
 
-void printLine(char *address, int line)
+void printLine(char *address, int line, char *output)
 {
     FILE *r = fopen(address, "r");
     fseek(r, 0, SEEK_END);
     long size = ftell(r);
     fseek(r, 0, SEEK_SET);
     long position = ftell(r);
+    char tmp[MAX_LINE_LENGTH] = {0};
 
     int seenLines = 1;
 
-    while (seenLines < line && position < size)
+    while (seenLines < line && position < size - seenLines + 1)
     {
         if (fgetc(r) == '\n')
             seenLines++;
@@ -141,22 +153,24 @@ void printLine(char *address, int line)
     }
 
     char c = fgetc(r);
-    while (c != '\n' && position < size)
+    while (c != '\n' && position < size - seenLines + 1)
     {
-        printf("%c", c);
+        sprintf(tmp, "%c", c);
+        strcat(output, tmp);
         c = fgetc(r);
         position++;
     }
-    printf("\n");
+    strcat(output, "\n");
     fclose(r);
     return;
 }
 
-void printAllLinesGrep(char *address, char *pattern)
+void printAllLinesGrep(char *address, char *pattern, char *output)
 {
     int line;
     int att[4] = {0, 0, 0, 1};
     struct linkedList *check = find(address, pattern, att);
+    char tmp[MAX_LINE_LENGTH] = {0};
 
     if (check->value == -10)
         return;
@@ -164,8 +178,9 @@ void printAllLinesGrep(char *address, char *pattern)
     if (check->value != -1)
     {
         line = getLine(address, check->value);
-        printf("%s: ", address);
-        printLine(address, line);
+        sprintf(tmp, "%s: ", address);
+        strcat(output, tmp);
+        printLine(address, line, output);
     }
 
     if (check->next == NULL)
@@ -177,8 +192,9 @@ void printAllLinesGrep(char *address, char *pattern)
         if (getLine(address, check->value) != line)
         {
             line = getLine(address, check->value);
-            printf("%s: ", address);
-            printLine(address, line);
+            sprintf(tmp, "%s: ", address);
+            strcat(output, tmp);
+            printLine(address, line, output);
         }
 
         if (check->next == NULL)
@@ -222,15 +238,14 @@ int countAllLinesGrep(char *address, char *pattern)
     return count;
 }
 
-int grep(char **addresses, int n, char *pattern, bool c, bool l)
+void grep(char **addresses, int n, char *pattern, bool c, bool l, char *output)
 {
-    if (c && l)
-        return 0;
+    char x[MAX_LINE_LENGTH] = {0};
 
     if (!c && !l)
     {
         for (int i = 0; i < n; i++)
-            printAllLinesGrep(*(addresses + i), pattern);
+            printAllLinesGrep(*(addresses + i), pattern, output);
     }
 
     if (c && !l)
@@ -238,7 +253,8 @@ int grep(char **addresses, int n, char *pattern, bool c, bool l)
         int count = 0;
         for (int i = 0; i < n; i++)
             count += countAllLinesGrep(*(addresses + i), pattern);
-        printf("%d\n", count);
+        sprintf(x, "%d\n", count);
+        strcat(output, x);
     }
 
     if (!c && l)
@@ -246,10 +262,12 @@ int grep(char **addresses, int n, char *pattern, bool c, bool l)
         for (int i = 0; i < n; i++)
         {
             if (countAllLinesGrep(*(addresses + i), pattern))
-                printf("%s\n", *(addresses + i));
+            {
+                sprintf(x, "%s\n", *(addresses + i));
+                strcat(output, x);
+            }
         }
     }
 
-    return 1;
 }
 

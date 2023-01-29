@@ -5,6 +5,7 @@
 #include<sys/stat.h>
 
 #define CAPACITY 255
+#define MAX_STRING_SIZE 10000
 
 struct pos
 {
@@ -72,21 +73,27 @@ struct pos getWordPosFromIndex(char *address, int index)
     return p;
 }
 
-void printfFormattedLinkedList(char *address, struct linkedList *list, struct pos (*function) (char *, int))
+void printfFormattedLinkedList(char *address, struct linkedList *list, struct pos (*function) (char *, int), char *output)
 {
+    char tmp[MAX_STRING_SIZE] = {0};
+
     struct linkedList *check = list;
     if (check->value == -10)
         return;
     if (check->value == -1)
-        printf("-1\n");
+        sprintf(output, "-1\n");
     else
-        printf("line:%d, position:%d\n", function(address, check->value).line, function(address, check->value).position);
+    {
+        sprintf(tmp, "line:%d, position:%d\n", function(address, check->value).line, function(address, check->value).position);
+        strcat(output, tmp);
+    }
     if (check->next == NULL)
         return;
     check = check->next;
     while (check->value != -10)
     {
-        printf("line:%d, position:%d\n", function(address, check->value).line, function(address, check->value).position);
+        sprintf(tmp, "line:%d, position:%d\n", function(address, check->value).line, function(address, check->value).position);
+        strcat(output, tmp);
         if (check->next == NULL)
             break;
         check = check->next;
@@ -132,6 +139,28 @@ int getPos(char *address, struct pos p)
 //    int att = GetFileAttributes(".hidden files");
 //    SetFileAttributes(".hidden files", att + FILE_ATTRIBUTE_HIDDEN);
 //}
+
+char *readFile(char *address)
+{
+    FILE *read = fopen(address, "r");
+    fseek(read, 0, SEEK_END);
+    long size = ftell(read);
+    fseek(read, 0, SEEK_SET);
+
+    char *output = (char *) calloc(size + 2, sizeof(char));
+    int i = 0;
+
+    while (1)
+    {
+        char c = fgetc(read);
+        if (c == EOF)
+            break;
+        output[i++] = c;
+    }
+    fclose(read);
+
+    return output;
+}
 
 char firstNonSpaceChar(FILE *r, long position)
 {
@@ -264,17 +293,19 @@ void insert(char *address, struct pos p, char *text)
     return;
 }
 
-void cat(char *address)
+void cat(char *address, char *output)
 {
     FILE *f = fopen(address, "r");
+    char tmp[5] = {0};
     while(1)
     {
         char c = fgetc(f);
         if (c == EOF)
             break;
-        printf("%c", c);
+        sprintf(tmp, "%c", c);
+        strcat(output, tmp);
     }
-    printf("\n");
+    strcat(output, "\n");
     fclose(f);
     return;
 }

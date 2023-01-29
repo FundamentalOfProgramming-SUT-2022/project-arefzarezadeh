@@ -6,6 +6,7 @@
 #include<stdbool.h>
 
 #define MAX_ADDRESS_LENGTH 255
+#define MAX_STRING_SIZE 10000
 
 bool isDirectory(char *address)
 {
@@ -31,24 +32,31 @@ int countSubDir(char *address)
     return count;
 }
 
-void printPreviousBranches(int count)
+void printPreviousBranches(int count, char *str)
 {
+    char text[4];
+    text[0] = 179;
+    text[1] = ' ';
+    text[2] = ' ';
+    text[3] = '\0';
     for (int i = 0; i < count; i++)
-        printf("%c  ", 179);
+        strcat(str, text);
     return;
 }
 
-void printTree(char *address, int depth, int maxDepth)
+char * printTree(char *address, int depth, int maxDepth, char *output)
 {
     if (maxDepth == -1)
         maxDepth = (1 << 30);
     if (depth > maxDepth)
-        return;
+        return output;
     if (depth == 0)
     {
-        printf("%s:\n", address);
-        printTree(address, 1, maxDepth);
-        return;
+        char tmp[MAX_STRING_SIZE];
+        sprintf(tmp, "%s:\n", address);
+        strcat(output, tmp);
+        printTree(address, 1, maxDepth, output);
+        return output;
     }
     DIR *d;
     struct dirent *dir;
@@ -66,12 +74,16 @@ void printTree(char *address, int depth, int maxDepth)
                 i--;
                 continue;
             }
-            printPreviousBranches(depth - 1);
-            if (i == count)
-                printf("%c%c%c", 192, 196, 196);
-            else
-                printf("%c%c%c", 195, 196, 196);
-            printf("%s", dir->d_name);
+            printPreviousBranches(depth - 1, output);
+//            if (i == count)
+//                printf("%c%c%c", 192, 196, 196);
+//            else
+            char tmp[MAX_STRING_SIZE];
+
+            sprintf(tmp, "%c%c%c", 195, 196, 196);
+            strcat(output, tmp);
+            sprintf(tmp, "%s", dir->d_name);
+            strcat(output, tmp);
 
             char newAddress[MAX_ADDRESS_LENGTH] = {0};
             strcat(newAddress, address);
@@ -80,12 +92,17 @@ void printTree(char *address, int depth, int maxDepth)
 
             if (isDirectory(newAddress))
             {
-                printf(":\n");
-                printTree(newAddress, depth + 1, maxDepth);
+                strcat(output, ":\n");
+                printTree(newAddress, depth + 1, maxDepth, output);
             }
             else
-                printf("\n");
+                strcat(output, "\n");
         }
         closedir(d);
+        printPreviousBranches(depth - 1, output);
+        char tmp[MAX_STRING_SIZE];
+        sprintf(tmp, "%c\n", 223);
+        strcat(output, tmp);
     }
+    return output;
 }
