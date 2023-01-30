@@ -3,8 +3,6 @@
 #include<string.h>
 #include<stdbool.h>
 
-//#include "find.h"
-
 #define MAX_LINE_LENGTH 10000
 #define MAX_ADDRESS_LENGTH 255
 
@@ -35,38 +33,6 @@ int countFileLines(char *address)
     fclose(read);
     return count;
 }
-
-//void fprintLine(char *address, int line, char *outputName)
-//{
-//    FILE *r = fopen(address, "r");
-//    char hiddenAddress[MAX_ADDRESS_LENGTH] = ".hidden/";
-//    strcat(hiddenAddress, outputName);
-//    FILE *write = fopen(hiddenAddress, "w");
-//    fseek(r, 0, SEEK_END);
-//    long size = ftell(r);
-//    fseek(r, 0, SEEK_SET);
-//    long position = ftell(r);
-//
-//    int seenLines = 1;
-//
-//    while (seenLines < line && position < size)
-//    {
-//        if (fgetc(r) == '\n')
-//            seenLines++;
-//        position++;
-//    }
-//
-//    char c = fgetc(r);
-//    while (c != '\n' && c != EOF)
-//    {
-//        fputc(c, write);
-//        c = fgetc(r);
-//        position++;
-//    }
-//    fclose(r);
-//    fclose(write);
-//    return;
-//}
 
 void textComparator(char *address1, char *address2, char *output)
 {

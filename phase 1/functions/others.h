@@ -130,15 +130,12 @@ int getPos(char *address, struct pos p)
             i++;
         position++;
     }
+    if (j != p.position || i != p.line)
+    {
+        return -1;
+    }
     return position;
 }
-
-//void startApp()
-//{
-//    mkdir(".hidden files");
-//    int att = GetFileAttributes(".hidden files");
-//    SetFileAttributes(".hidden files", att + FILE_ATTRIBUTE_HIDDEN);
-//}
 
 char *readFile(char *address)
 {
@@ -164,11 +161,9 @@ char *readFile(char *address)
 
 char firstNonSpaceChar(FILE *r, long position)
 {
-    //printf("%d\n", position);
     char c = fgetc(r);
     while (c == ' ')
         c = fgetc(r);
-        //printf("this char is |%c| at |%ld|\n", c, position);
     fseek(r, position, SEEK_SET);
     return c;
 }
@@ -224,25 +219,11 @@ void undoHandler(char *address)
     strcat(hidden, address);
     createNewFile(hidden);
     copyFile(address, hidden);
-//    FILE *f = fopen(".hidden/undo_file_path.txt", "w");
-//    fputs(address, f);
-//    fclose(f);
     return;
 }
 
 bool undo(char *address)
 {
-//    char address[CAPACITY];
-//    FILE *r = fopen(".hidden/undo_file_path.txt", "r");
-//
-//    if (r == NULL)
-//        return false;
-//
-//    fgets(address, CAPACITY, r);
-//    fclose(r);
-//
-//    if (!strcmp(address, ""))
-//        return false;
     char hidden[CAPACITY] = ".hidden/";
     strcat(hidden, address);
     if (!fileExists(hidden))
@@ -274,7 +255,11 @@ void insert(char *address, struct pos p, char *text)
                     break;
                 fputc(c, w);
                 if (c == '\n')
+                {
+                    i++;
                     break;
+                }
+
                 j++;
             }
 
@@ -314,6 +299,8 @@ void removestr(char *address, struct pos p, int size, bool forward)
 {
     undoHandler(address);
     int position = getPos(address, p), k = 0;
+    if (position == -1)
+        return;
     FILE *read = fopen(address, "r");
     FILE *tmp = fopen(".hidden/tmp.txt", "w");
 
@@ -338,6 +325,8 @@ void removestr(char *address, struct pos p, int size, bool forward)
 void copystr(char *address, struct pos p, int size, bool forward)
 {
     int position = getPos(address, p);
+    if (position == -1)
+        return;
     FILE *read = fopen(address, "r");
     FILE *clipboard = fopen(".hidden/clipboard.txt", "w");
     int startingPos, endingPos;
@@ -577,7 +566,6 @@ bool replace(char *address, char *textToBeFound, char *replacementText, int attr
 
         ans = getRealPos(read);
         int x = findNormal(read, textToBeFound);
-        //printf("%d\n", x);
         if (x == -1)
             return false;
         ans += x;
@@ -593,14 +581,11 @@ bool replace(char *address, char *textToBeFound, char *replacementText, int attr
     if (attributes[1])
     {
         int x = findNormal(read, textToBeFound);
-        //printf("%d\n", x);
         if (x == -1)
             return true;
 
         int length = getRealPos(read) - x;
 
-
-        //printf("x:%d\ngrp:%d\nlen:%d\n", x, getRealPos(read), length);
 
         fclose(read);
 

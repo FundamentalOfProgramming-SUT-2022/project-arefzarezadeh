@@ -274,8 +274,6 @@ int findNormal(FILE *read, char *textToBeFound)
         for (int j = 1; j < textLength - i; j++)
             rest[j - 1] = textToBeFound[j + i];
 
-//        if (!strcmp(rest, ""))
-//            return findStartWild(read, firstWord);
         while (1)
         {
             int output;
@@ -314,7 +312,6 @@ int findNormal(FILE *read, char *textToBeFound)
     for (int j = 1; j < textLength - i; j++)
         rest[j - 1] = textToBeFound[j + i];
 
-    //printf("first:%s|rest:%s\n", first, rest);
 
     if (!strcmp(rest, ""))
         return findNormal(read, first);
@@ -324,7 +321,6 @@ int findNormal(FILE *read, char *textToBeFound)
         int output = findNormal(read, first);
         long position = ftell(read);
         int secondPart = findNormal(read, rest);
-        //printf("%s:%d|%s:%d\n", first, output, rest, secondPart);
         if (output == -1 || secondPart == 0)
         {
             free(rest);
@@ -399,74 +395,4 @@ struct linkedList * find(char *address, char *textToBeFound, int attributes[4])
     addLinkedList(output, findNormal(read, textToBeFound));
     fclose(read);
     return output;
-
-//    addLinkedList(output, findNormal(read, textToBeFound, 0));
-//    addLinkedList(output, findNormal(read, textToBeFound, 0));
-//    fclose(read);
-//    return output;
 }
-
-
-
-//int main()
-//{
-//    FILE *r = fopen("text.txt", "r");
-//
-//    //fseek(r, 10, SEEK_SET);
-//
-////    fseek(r, 39, SEEK_SET);
-////    printf("%c%", fgetc(r));
-////    printf("%c%", fgetc(r));
-////    printf("%c%", fgetc(r));
-////    printf("%c%", fgetc(r));
-//
-////    printf("find *l:%d\n", findStartWild(r, "*obi?"));
-////    printf("find *l:%d\n", staticFind(r, "chert"));
-//
-////    int output = findStartWild(r, "*?\n");
-////    long position = ftell(r);
-////    int secondPart = staticFind(r, "chert");
-////    printf("output:%d\nsecond:%d\n\n", output, secondPart);
-//
-//
-//    int att[4] = {0, 0, 0, 1};
-//    struct linkedList *list = find("test.txt", "K", att);
-//    printLinkedList(list);
-////    printf("find:%d\n", find("test.txt", "b*", att)->value);
-////    printf("find *l:%d\n", findNormal(r, "*? *e"));
-////    printf("find *l:%d\n", findNormal(r, "*? *e"));
-////    printf("find *l:%d\n", findNormal(r, "*? *e"));
-//    //printf("find *l:%d\n", find("test.txt", "? *t", att)->next->value);
-//    //printf("find *l:%d\n", findNormal(r, "*lam\nKhobi?\nc"));
-////    printf("find *l:%d\n", findNormal(r, "*hert"));
-//    //printf("find *l:%d\n", findNormal(r, "chert *? c"));
-//    //printf("find *l:%d\n", findNormal(r, "*? c"));
-//    //printf("find *l:%d\n", findNormal(r, "c"));
-//    printf("%c%", fgetc(r));
-//    printf("%c%", fgetc(r));
-//    printf("%c%", fgetc(r));
-//    printf("%c%", fgetc(r));
-//    printf("%c%", fgetc(r));
-//    printf("%c%", fgetc(r));
-//    printf("%c%", fgetc(r));
-//    //printf("find *l:%d\n", staticFind(r, "am"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", staticFind(r, "b"));
-////    printf("%d\n", ftell(r));
-//
-////    fseek(r, 0, SEEK_SET);
-////    char c;
-////    while ((c = fgetc(r)) != EOF)
-////        printf("%d:'%c'\n", ftell(r) - 1, c);
-//    return 17;
-//}

@@ -2,12 +2,12 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<string.h>
-//#include<windows.h>
+#include<windows.h>
 
-#include "find.h"
-#include "grep.h"
-#include "tree.h"
-#include "others.h"
+#include "functions/find.h"
+#include "functions/grep.h"
+#include "functions/tree.h"
+#include "functions/others.h"
 
 #define CAPACITY 255
 #define COMMAND_LENGTH 10000
@@ -201,6 +201,12 @@ void setPos(struct pos *p, char *content)
     {
         if (content[i] == ':')
             colon = true;
+        else if (content[i] > '9' || content[i] < '0')
+        {
+            line = -1;
+            position = 0;
+            break;
+        }
         else if (!colon)
             line = line * 10 + content[i] - '0';
         else
@@ -270,11 +276,6 @@ int terminalInsert(char *command, int *index, bool arman)
         free(option);
         option = getString(command, index);
 
-//        if (!strcmp(option, "--file") || !strcmp(option, "--str") || !strcmp(option, "--pos"))
-//        {
-//            free(option);
-//            return -100;
-//        }
         if (*index >= strlen(command) && !strcmp(option, ""))
         {
             free(option);
@@ -300,6 +301,8 @@ int terminalInsert(char *command, int *index, bool arman)
         return -201;
     if (content == NULL)
         return -304;
+    if (position.line == -1)
+        return -303;
 
     char *trueContent;
     if (!arman)
@@ -1166,76 +1169,25 @@ bool terminal()
     return true;
 }
 
+void startApp()
+{
+    if (!fileExists(".hidden"))
+    {
+        mkdir(".hidden");
+        int att = GetFileAttributes(".hidden");
+        SetFileAttributes(".hidden", att + FILE_ATTRIBUTE_HIDDEN);
+    }
+    if (!fileExists("root"))
+    {
+        mkdir("root");
+    }
+}
+
 int main()
 {
-//    char text[MAX_STRING_SIZE] = {0};
-//    printTree("root", 0, 100, text);
-//    printf("%s", text);
-    //cat(".hidden/output.txt");
+    startApp();
     while (terminal());
-    //createNewFile("test.txt");
-    //createNewFile("text.txt");
-    struct pos start = {1, 0};
-    //int att[4] = {0, 0, 0, 0};
-//    struct pos found1 = getWordPosFromIndex("test.txt", find("test.txt", "K*", att)->value);
-//    struct pos found2 = getWordPosFromIndex("test.txt", find("test.txt", "Kh\\*obi?", att)->value);
-//    printf("line:%d\n", found1.line);
-//    printf("pos:%d\n", found1.position);
-    int att[2] = {0, 1};
-    replace("test.txt", "K*", "|locate|", att);
-//    FILE *read = fopen("test.txt", "r");
-//    printf("%d\n", findNormal(read, "K* c"));
 
-
-    //insert("test.txt", start, "b b b b Salam\nKhobi?\nchert Khobi? chert a a b chert2 a chert chert3");
-    //insert("text.txt", start, "{{}            }");
-    //auto_indent("text.txt");
-//    FILE *r = fopen("text.txt", "r");
-//    FILE *r2 = fopen("test.txt", "r");
-//
-//    struct pos middle = {1, 4};
-//    char text1[100];
-//    char text2[100];
-//
-//    //insert("test.txt", middle, "xlolololx");
-//    fgets(text1, 100, r);
-//    fgets(text2, 100, r2);
-//
-//    printf("%d\n", strcmp(text1, text2));
-//
-//    fgets(text1, 100, r);
-//    fgets(text2, 100, r2);
-//
-//    printf("%d\n", strcmp(text1, text2));
-//
-//    fgets(text1, 100, r);
-//    fgets(text2, 100, r2);
-//
-//    printf("%d\n", strcmp(text1, text2));
-//    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
-//
-//    fgets(text1, 100, r);
-//    fgets(text2, 100, r2);
-//
-//    printf("%d\n", strcmp(text1, text2));
-//    printf("%s/%s/%d/%d\n", text1, text2, ftell(r), ftell(r2));
-//
-//    fgets(text1, 100, r);
-//    fgets(text2, 100, r2);
-//
-//    printf("%d\n", strcmp(text1, text2));
-//    printf("%s/%s/%d/%d/%d\n", text1, text2, ftell(r), ftell(r2), strlen(text2));
-//    fclose(r);
-//    fclose(r2);
-//
-//    textComparator("text.txt", "test.txt");
-//
-//
-//
-//    undo();
-//    undo();
-//
-    printTree(".", 0, -1, false);
 
     return 17;
 }

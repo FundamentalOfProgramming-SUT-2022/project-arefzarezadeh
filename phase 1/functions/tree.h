@@ -15,23 +15,6 @@ bool isDirectory(char *address)
     return !S_ISREG(fileStat.st_mode);
 }
 
-int countSubDir(char *address)
-{
-    DIR *d;
-    struct dirent *dir;
-    d = opendir(address);
-
-    int count = 0;
-    if (d)
-    {
-        while ((dir = readdir(d)) != NULL)
-            count++;
-        closedir(d);
-    }
-
-    return count;
-}
-
 void printPreviousBranches(int count, char *str)
 {
     char text[4];
@@ -63,21 +46,13 @@ char * printTree(char *address, int depth, int maxDepth, char *output)
     d = opendir(address);
     if (d)
     {
-        int count = countSubDir(address);
-        int i = 0;
         while ((dir = readdir(d)) != NULL)
         {
-            i++;
             if (!strcmp(dir->d_name, ".hidden") || !strcmp(dir->d_name, ".") || !strcmp(dir->d_name, ".."))
             {
-                count--;
-                i--;
                 continue;
             }
             printPreviousBranches(depth - 1, output);
-//            if (i == count)
-//                printf("%c%c%c", 192, 196, 196);
-//            else
             char tmp[MAX_STRING_SIZE];
 
             sprintf(tmp, "%c%c%c", 195, 196, 196);
