@@ -24,6 +24,7 @@ int terminalArman(char *command, int *index);
     -302: you forgot to add file
     -303: you forgot to add pos
     -304: forgot to add string
+    -305: pos out of bounds
     -401: find attributes combination
     -402: forgot find pattern
     -403: at value
@@ -64,6 +65,9 @@ void errorHandler(int error)
         break;
     case -304:
         printf("You forgot to add string\n");
+        break;
+    case -305:
+        printf("Position out of bounds\n");
         break;
     case -401:
         printf("You can't use these find options together\n");
@@ -293,6 +297,7 @@ int terminalInsert(char *command, int *index, bool arman)
             content = option;
         else if (p)
             setPos(&position, option);
+
     }
 
     if (address == NULL)
@@ -303,6 +308,8 @@ int terminalInsert(char *command, int *index, bool arman)
         return -304;
     if (position.line == -1)
         return -303;
+    if (getPos(address, position) == -1)
+        return -305;
 
     char *trueContent;
     if (!arman)
@@ -421,6 +428,8 @@ int terminalRemove(char *command, int *index)
         return -301;
     if (position.line == -1)
         return -303;
+    if (getPos(address, position) == -1)
+        return -305;
 
     removestr(address, position, size, forward);
     return 1;
@@ -486,6 +495,8 @@ int terminalCopy(char *command, int *index)
         return -301;
     if (position.line == -1)
         return -303;
+    if (getPos(address, position) == -1)
+        return -305;
 
     copystr(address, position, size, forward);
     return 1;
@@ -551,6 +562,8 @@ int terminalCut(char *command, int *index)
         return -301;
     if (position.line == -1)
         return -303;
+    if (getPos(address, position) == -1)
+        return -305;
 
     cutstr(address, position, size, forward);
     return 1;
@@ -598,6 +611,8 @@ int terminalPaste(char *command, int *index)
         return -201;
     if (position.line == -1)
         return -303;
+    if (getPos(address, position) == -1)
+        return -305;
 
     pastestr(address, position);
     return 1;
