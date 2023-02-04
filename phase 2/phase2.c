@@ -181,23 +181,22 @@ int main()
 							wmove(win_cmnd, 0, 0);
 							char *tmp_address = getString(command, &index);
 							if (!fileExists(tmp_address + 1))
-								strcpy(output, "file does not exist");
-							else
 							{
-								strcpy(address, tmp_address + 1);
-								isSaved = true;
-								needsSave = false;
-								update_window_file(win_file, true, address);
-								free(content);
-								free(linea);
-								linea = calloc(countLines(address) + WIN_CONT_HEIGHT, sizeof(int));
-								content = fileToString(address, linea);
-								set_line_length(content, &linea, &lineNo);
-								starting_line = 0;
-								update_window_line(win_line, lineNo, starting_line);
-								update_window_cont(win_cont, content, linea, starting_line);
-								wmove(win_cont, 0, 0);
+								createNewFile(tmp_address + 1);
 							}
+							strcpy(address, tmp_address + 1);
+							isSaved = true;
+							needsSave = false;
+							update_window_file(win_file, true, address);
+							free(content);
+							free(linea);
+							linea = calloc(countLines(address) + WIN_CONT_HEIGHT, sizeof(int));
+							content = fileToString(address, linea);
+							set_line_length(content, &linea, &lineNo);
+							starting_line = 0;
+							update_window_line(win_line, lineNo, starting_line);
+							update_window_cont(win_cont, content, linea, starting_line);
+							wmove(win_cont, 0, 0);
 						}
 						else
 						{
