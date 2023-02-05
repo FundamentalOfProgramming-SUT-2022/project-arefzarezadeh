@@ -67,6 +67,7 @@ char ** insertToList(char **initial_list, char *item, int index);
 char ** removeFromList(char **initial_list, int index);
 int *line_length(char *fileAddress);
 char ** fileToString(char *fileAddress, int *line_length);
+void stringToFile(char **content, char *fileAddress);
 void set_line_length(char **content, int **line_length, int **lineNo);
 void copy_content(char **content, int *line_length, int line_from, int pos_from, int line_to, int pos_to);
 void cut_content(char ***content, int *line_length, int line_from, int pos_from, int line_to, int pos_to);
@@ -86,8 +87,8 @@ int main()
 	char **content;
 	int starting_line = 0;
 	int start_visual_x, start_visual_y, start_visual_line;
-	char address[CAPACITY] = {0};
-	bool isSaved, needsSave;
+	char address[CAPACITY] = ".hidden/temperoryFile.txt";
+	bool isSaved = false, needsSave = false;
 
 	initscr();
 	start_color();
@@ -115,6 +116,10 @@ int main()
 
 	keypad(win_cmnd, TRUE);
 	
+	FILE *tmp_file = fopen(address, "w");
+	fclose(tmp_file);
+	content = fileToString(address, linea);
+	set_line_length(content, &linea, &lineNo);
 
 	
 	refresh();
@@ -125,7 +130,8 @@ int main()
 
 	
 
-	//update_window_line(win_line, lineNo, starting_line);
+	update_window_line(win_line, lineNo, starting_line);
+	update_window_file(win_file, isSaved, address);
 
 	wmove(win_cont, 0, 0);
 	wrefresh(win_cont);
@@ -148,7 +154,9 @@ int main()
 
 			if (cmnd_x == 0 && ch == ':')
 			{
-				wprintw(win_cmnd, ":");
+				for (int i = 0; i < WIN_CMND_WIDTH; i++)
+					wprintw(win_cmnd, " ");
+				mvwprintw(win_cmnd, 0, 0, ":");
 				char *command = calloc(1, sizeof(char));
 				cmnd_length++;
 				int pos_x = 0;
@@ -178,6 +186,7 @@ int main()
 						char output[CAPACITY] = {0};
 						if (!strcmp(first, "open"))
 						{
+							stringToFile(content, address);
 							wmove(win_cmnd, 0, 0);
 							char *tmp_address = getString(command, &index);
 							if (!fileExists(tmp_address + 1))
@@ -197,6 +206,35 @@ int main()
 							update_window_line(win_line, lineNo, starting_line);
 							update_window_cont(win_cont, content, linea, starting_line);
 							wmove(win_cont, 0, 0);
+						}
+						else if (!strcmp(first, "save"))
+						{
+							if(!strcmp(address, ".hidden/temperoryFile.txt"))
+							{
+								mvwprintw(win_cmnd, 0, 0, "file name does not exist");
+								for (int i = 0; i < WIN_FILE_WIDTH; i++)
+									wprintw(win_cmnd, " ");
+								wmove(win_cmnd, 0, 0);
+								wrefresh(win_cmnd);
+								break;
+							}
+							stringToFile(content, address);
+							isSaved = true;
+							needsSave = false;
+							update_window_file(win_file, isSaved, address);
+						}
+						else if (!strcmp(first, "saveas"))
+						{
+							char *tmp_address = getString(command, &index);
+							if (!fileExists(tmp_address + 1))
+							{
+								createNewFile(tmp_address + 1);
+							}
+							strcpy(address, tmp_address + 1);
+							stringToFile(content, address);
+							isSaved = true;
+							needsSave = false;
+							update_window_file(win_file, isSaved, address);
 						}
 						else
 						{
@@ -272,6 +310,18 @@ int main()
 			}
 			else switch(ch)
 			{
+				// case 'p':
+				// 	stringToFile(content, ".hidden/tmp_paste.txt");
+				// 	free(content);
+				// 	int current_y, current_x;
+				// 	getyx(win_cont, current_y, current_x);
+				// 	//struct pos p = {current_y + starting_line + 1, current_x};
+				// 	//pastestr(".hidden/tmp_paste.txt", p);
+				// 	content = fileToString(".hidden/tmp_paste.txt", linea);
+				// 	set_line_length(content, &linea, &lineNo);
+				// 	update_window_line(win_line, lineNo, starting_line);
+				// 	update_window_cont(win_cont, content, linea, starting_line);
+				// 	wmove(win_cont, current_y, current_x);
 				case 'n':
 					update_window_mode(win_mode, 1);
 					mode = 1;
@@ -671,9 +721,14 @@ void update_window_mode(WINDOW *win_mode, int mode)
 
 void update_window_file(WINDOW *win_file, bool saved, char *fileName)
 {
+	for (int i = 0; i < WIN_FILE_WIDTH; i++)
+		mvwprintw(win_file, 0, i, " ");
 	if (!saved)
 		mvwprintw(win_file, 0, 1, "+");
-	mvwprintw(win_file, 0, 3, "%s", fileName);
+	if (strcmp(fileName, ".hidden/temperoryFile.txt"))
+		mvwprintw(win_file, 0, 3, "%s", fileName);
+	else
+		mvwprintw(win_file, 0, 3, "[no file name]");
 	wrefresh(win_file);
 }
 
@@ -970,6 +1025,19 @@ char ** fileToString(char *fileAddress, int *line_length)
 	fclose(read);
 	output[length] = NULL;
 	return output;
+}
+
+void stringToFile(char **content, char *fileAddress)
+{
+	FILE *write = fopen(fileAddress, "w");
+	int length = wordListLength(content);
+	for (int i = 0; i < length - 1; i++)
+	{
+		fputs(content[i], write);
+		fputc('\n', write);
+	}
+	fputs(content[length - 1], write);
+	fclose(write);
 }
 
 void set_line_length(char **content, int **line_length, int **lineNo)
