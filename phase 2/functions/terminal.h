@@ -432,7 +432,7 @@ int terminalCat(char *command, int *index)
             fclose(write);
             return terminalArman(command, index);
         }
-        printf("%s", output);
+        //printf("%s", output);
         return 1;
     }
     else
@@ -799,7 +799,7 @@ int terminalFind(char *command, int *index, bool arman)
         return terminalArman(command, index);
     }
 
-    printf("%s", output);
+    // printf("%s", output);
 
     return 1;
 }
@@ -881,7 +881,7 @@ int terminalReplace(char *command, int *index, bool arman)
         return -405;
 
     replace(address, textToBeFound, replacement, attributes);
-    printf("Successful\n");
+    // printf("Successful\n");
     return 1;
 }
 
@@ -975,7 +975,7 @@ int terminalGrep(char *command, int *index, bool arman)
         return terminalArman(command, index);
     }
 
-    printf("%s", output);
+    // printf("%s", output);
     return 1;
 }
 
@@ -1068,7 +1068,7 @@ int terminalCompare(char *command, int *index)
         return terminalArman(command, index);
     }
 
-    printf("%s", output);
+    // printf("%s", output);
 
     return 1;
 }
@@ -1107,7 +1107,7 @@ int terminalTree(char *command, int *index)
         return terminalArman(command, index);
     }
 
-    printf("%s", output);
+    // printf("%s", output);
     return 1;
 }
 
@@ -1251,7 +1251,7 @@ bool terminal()
 
         return true;
     }
-    printf("Invalid expression\n");
+    // printf("Invalid expression\n");
     return true;
 }
 
